@@ -81,12 +81,13 @@ namespace ZestyChips
                 }
                 else
                 {
+                    Helpers.PrintFail("failed to login to IMAP server.");
                     return false;
                 }
             }
             catch
             {
-                Helpers.PrintFail("failed to login to IMAP server.");
+                Helpers.PrintFail("unknown error occurred logging into IMAP server.");
                 return false;
             }
         }
