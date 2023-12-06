@@ -50,7 +50,13 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
+    <None Include="10-auth.conf" />
+    <None Include="10-mail.conf" />
+    <None Include="10-ssl.conf" />
     <None Include="App.config" />
+    <None Include="Dockerfile" />
+    <None Include="dovecot-users" />
+    <None Include="dovecot.conf" />
     <None Include="readme.md" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

