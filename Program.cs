@@ -7,6 +7,11 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 
+/**
+* @author 0xflux
+* usage (vscode): dotnet run
+*/
+
 namespace ZestyChips
 {
     internal class Program
