@@ -20,6 +20,8 @@ Open the dockerfile and edit `simap_poc_username=defaultUsername` and `simap_poc
 
 docker build -t simap .
 
+Note, you may get an error regarding `go mod download`, that is fine - currently no dependancies, but leaving in for future proofing just in case.
+
 5. Run the Docker container:
 
 docker run -p 143:143 simap
