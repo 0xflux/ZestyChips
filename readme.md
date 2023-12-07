@@ -12,7 +12,7 @@ The author of this project disclaim any responsibility for misuse or illegal app
 
  - Requires >= .NET8.0
 
- - Requires the c2 counterpart, written by me (0xflux) with no external dependencies: https://github.com/0xflux/SIMAP/ 
+ - Requires the c2 counterpart, written by me (0xflux) with no external dependencies: https://github.com/0xflux/SIMAP/ (see below instructions for installation with Docker, can run standalone if you like just by building the Go project)
 
 ## Step 1 - run SIMAP (Simple IMAP)
 
