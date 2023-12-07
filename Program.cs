@@ -47,7 +47,7 @@ namespace ZestyChips
                 {
                     Helpers.PrintSuccess("login to IMAP successful.");
                     // todo from here..
-
+                    SendBase64EncodedData("hello world"); // test case success
                 }
             }
 
@@ -116,7 +116,43 @@ namespace ZestyChips
             }
         }
 
+        /*
+        * Encode a string to base64 and send to IMAP server.
+        * Returns a bool for success status
+        */
+        public static bool SendBase64EncodedData(string data)
+        {
+            try
+            {
+                // encode data to b64
+                string base64Data = Convert.ToBase64String(Encoding.ASCII.GetBytes(data));
+                Helpers.PrintInfo($"Encoded data to base64: {base64Data}");
 
+                NetworkStream stream = client.GetStream();
+                string dataCommand = $"PROCESSDATA {base64Data}\r\n"; // send PROCESSDATA switch
+                byte[] commandBytes = Encoding.ASCII.GetBytes(dataCommand); // encode to bytes
+                stream.Write(commandBytes, 0, commandBytes.Length); // write to the stream
+
+                // read server resposne
+                byte[] response = new byte[256];
+                int bytesRead = stream.Read(response, 0, response.Length);
+                string responseString = Encoding.ASCII.GetString(response, 0, bytesRead); // to string
+
+                Helpers.PrintInfo($"Server response: {responseString}");
+
+                return responseString.Contains("OK Data processed");
+            }
+            catch (IOException ex)
+            {
+                Helpers.PrintFail($"IO Exception: {ex.Message}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Helpers.PrintFail($"Unexpected error: {ex.Message}");
+                return false;
+            }
+        }
 
     }
 
