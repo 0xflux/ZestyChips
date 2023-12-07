@@ -5,19 +5,24 @@
 SIMAP, an application developed by me in Go, with no external dependancies, will run a simple IMAP server that we can communicate with.
 
 1. Clone SIMAP:
-   git clone https://github.com/0xflux/SIMAP.git
 
-2. Move to the cloned directory:
-   cd go-imap-server
+git clone https://github.com/0xflux/SIMAP.git
+
+2. Move to the cloned directory
+
+cd go-imap-server
 
 3. Change the default environment variable usernamme:password
-   Open the dockerfile and edit `simap_poc_username=defaultUsername` and `simap_poc_password=defaultPassword` to contain a username:password combo of your choice.
+
+Open the dockerfile and edit `simap_poc_username=defaultUsername` and `simap_poc_password=defaultPassword` to contain a username:password combo of your choice.
 
 4. Build the Docker image:
-   docker build -t go-imap-server .
+
+docker build -t go-imap-server .
 
 5. Run the Docker container:
-   docker run -p 143:143 go-imap-server
+
+docker run -p 143:143 go-imap-server
 
 ## Step 2 - Set environment variables
 
