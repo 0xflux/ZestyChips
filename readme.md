@@ -18,11 +18,11 @@ Open the dockerfile and edit `simap_poc_username=defaultUsername` and `simap_poc
 
 4. Build the Docker image:
 
-docker build -t SIMAP .
+docker build -t simap .
 
 5. Run the Docker container:
 
-docker run -p 143:143 SIMAP
+docker run -p 143:143 simap
 
 ## Step 2 - Set environment variables
 
