@@ -10,7 +10,7 @@ git clone https://github.com/0xflux/SIMAP.git
 
 2. Move to the cloned directory
 
-cd go-imap-server
+cd SIMAP
 
 3. Change the default environment variable usernamme:password
 
@@ -18,7 +18,7 @@ Open the dockerfile and edit `simap_poc_username=defaultUsername` and `simap_poc
 
 4. Build the Docker image:
 
-docker build -t go-imap-server .
+docker build -t SIMAP .
 
 5. Run the Docker container:
 
