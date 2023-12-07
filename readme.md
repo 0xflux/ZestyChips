@@ -12,6 +12,8 @@ The author of this project disclaim any responsibility for misuse or illegal app
 
 Requires >= .NET8.0
 
+Requires the c2 counterpart, written by me (0xflux) with no external dependencies: https://github.com/0xflux/SIMAP/ 
+
 ## Step 1 - run SIMAP (Simple IMAP)
 
 SIMAP, an application developed by me in Go, with no external dependancies, will run a simple IMAP server that we can communicate with.
