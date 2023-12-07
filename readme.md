@@ -22,7 +22,7 @@ docker build -t go-imap-server .
 
 5. Run the Docker container:
 
-docker run -p 143:143 go-imap-server
+docker run -p 143:143 SIMAP
 
 ## Step 2 - Set environment variables
 
