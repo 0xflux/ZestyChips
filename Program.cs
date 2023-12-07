@@ -23,8 +23,15 @@ namespace ZestyChips
             // cheat the hardcoded IP
             string c2_ip = "127.0.0.1";
             int c2_port = 143;
-            string username = "username";
-            string password = "super_secure_pw123";
+
+            // use env variables to login
+            string username = Environment.GetEnvironmentVariable("simap_poc_username");
+            string password = Environment.GetEnvironmentVariable("simap_poc_password");
+
+            if (username == "" || password == "") {
+                Helpers.PrintFail("username or password env variable not set. If it is set, reload your shell / session.");
+                return;
+            }
 
             // establish connection to c2
             if (Connect(c2_ip, c2_port))
@@ -65,10 +72,8 @@ namespace ZestyChips
             try
             {
                 NetworkStream stream = client.GetStream();
-                username = Uri.EscapeDataString(username);
-                password = Uri.EscapeDataString(password);
 
-                string loginCommand = $"a1 LOGIN {username} {password}\r\n";
+                string loginCommand = $"LOGIN {username} {password}\r\n";
                 byte[] commandBytes = Encoding.ASCII.GetBytes(loginCommand);
                 stream.Write(commandBytes, 0, commandBytes.Length);
 
@@ -89,7 +94,7 @@ namespace ZestyChips
                 string responseString = Encoding.ASCII.GetString(response, 0, bytesRead);
                 Helpers.PrintInfo($"response: {responseString}");
 
-                if (responseString.Contains("a1 OK"))
+                if (responseString.Contains("OK LOGIN"))
                 {
                     return true;
                 }
