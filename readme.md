@@ -10,9 +10,9 @@ The author of this project disclaim any responsibility for misuse or illegal app
 
 # Usage
 
-Requires >= .NET8.0
+ - Requires >= .NET8.0
 
-Requires the c2 counterpart, written by me (0xflux) with no external dependencies: https://github.com/0xflux/SIMAP/ 
+ - Requires the c2 counterpart, written by me (0xflux) with no external dependencies: https://github.com/0xflux/SIMAP/ 
 
 ## Step 1 - run SIMAP (Simple IMAP)
 
