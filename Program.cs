@@ -17,8 +17,6 @@ namespace ZestyChips
     internal class Program
     {
         private static TcpClient client = new TcpClient();
-        public static Dictionary<string, string> masterDictionary = new Dictionary<string, string>(); // to hold stolen data
-
         static void Main(string[] args)
         {
             Helpers.PrintInfo("starting ZestyChips...");
