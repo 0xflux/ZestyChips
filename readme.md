@@ -16,6 +16,8 @@ The author of this project disclaim any responsibility for misuse or illegal app
 
  - Requires the c2 counterpart, written by me (0xflux) with no external dependencies: https://github.com/0xflux/SIMAP/ (see below instructions for installation with Docker, can run standalone if you like just by building the Go project)
 
+ - Requires activation code, contact https://twitter.com/0xfluxsec for code.
+
 ## Step 1 - run SIMAP (Simple IMAP)
 
 SIMAP, an application developed by me in Go, with no external dependancies, will run a simple IMAP server that we can communicate with.
