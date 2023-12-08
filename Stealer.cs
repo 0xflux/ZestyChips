@@ -143,17 +143,6 @@ namespace ZestyChips
                     } else {
                         masterDictionary.Add(dict_site, ((dict_user != null) ? dict_user : null) + "|||" + decryptedPassword + "; ");
                     }
-
-
-                    // passwordResult = string.Concat(new string[] {
-                    //     passwordResult,
-                    //     (obj2 != null) ? obj2.ToString() : null,
-                    //     " ",
-                    //     (obj != null) ? obj.ToString() : null,
-                    //     " ",
-                    //     decryptedPassword,
-                    //     " 1\r\n"
-                    // });
                 } else if (decryptedOldStylePasswords != "") {
                     // this section is untested, so given try catch
                     try {
