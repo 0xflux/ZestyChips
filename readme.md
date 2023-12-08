@@ -12,6 +12,8 @@ The author of this project disclaim any responsibility for misuse or illegal app
 
 # Usage
 
+This is purpose built to use no third party libraries, other than official .net libraries built by Microsoft.
+
  - Requires >= .NET8.0
 
  - Requires the official SQLite package: https://www.nuget.org/packages/System.Data.SQLite/
