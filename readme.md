@@ -2,6 +2,8 @@
 
 THIS IS NOT DESIGNED TO WORK 'AS IS' FOR ETHICAL REASONS TO PREVENT 'SCRIPT KIDDY' USAGE. If you wish to use this script, please get in touch via Twitter: https://twitter.com/0xfluxsec. **This requires an activation code to run**. This is written by a security professional, for security professionals.
 
+USE AT YOUR OWN RISK. If you decide to use this software CONDUCT A THOROUGH INDEPENDENT CODE REVIEW to ensure it meets your standards. No unofficial third party dependencies are included to minimise attack surface of a supply chain risk. I cannot be held responsible for any problems that arise as a result of executing this, the burden is on the user of the software to validate its safety & integrity. All care has been taken to write safe code.
+
 This project, including all associated source code and documentation, is developed and shared solely for educational, research, and defensive purposes in the field of cybersecurity. It is intended to be used exclusively by cybersecurity professionals, researchers, and educators to enhance understanding, develop defensive strategies, and improve security postures.
 
 **Under no circumstances shall this project be used for criminal, unethical, or any other unauthorized activities.** The re-engineering and analysis of the malware sample provided in this project are meant to serve as a resource for learning and should not be employed for offensive operations or actions that infringe upon any individual's or organization's rights or privacy.
