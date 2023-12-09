@@ -153,7 +153,7 @@ namespace ZestyChips
             }
             catch (Exception ex)
             {
-                Helpers.PrintFail($"Unexpected error: {ex.Message}");
+                Helpers.PrintFail($"Unexpected error encoding / sending data to c2: {ex.Message}");
                 return false;
             }
         }
