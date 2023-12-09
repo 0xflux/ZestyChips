@@ -3,6 +3,7 @@
 Re-Engineering a .net C# stealer seen in the wild. You must **read this page in full** before you use or attempt to review this code, full sections include:
 
  - LEGAL DISCLAIMER
+ - Features
  - Usage (includes requirements)
 
 This project, including all associated source code and documentation, is developed and shared solely for educational, research, and defensive purposes in the field of cybersecurity. It is intended to be used exclusively by cybersecurity professionals, researchers, and educators to enhance understanding, develop defensive strategies, and improve security postures. **It is the user's responsibility to comply with all relevant local, state, national, and international laws and regulations related to cybersecurity and the use of such tools and information.**
@@ -25,6 +26,13 @@ USE AT YOUR OWN RISK. If you decide to use this software CONDUCT A THOROUGH INDE
 
 **It is the user's responsibility to comply with all relevant local, state, national, and international laws and regulations related to cybersecurity and the use of such tools and information.** If you are unsure about the legal implications of using or studying the material provided in this project, please consult with a legal professional before proceeding. Remember, responsible and ethical behavior is paramount in cybersecurity research and practice. The knowledge and tools shared in this project are provided in good faith to contribute positively to the cybersecurity community, and I trust they will be used with the utmost integrity.
 
+# Features
+
+ - Steal Chrome cookies
+ - Steal Chrome passwords
+ - Steal Edge cookies (todo)
+ - Steal Edge passwords
+ - Send all data to command and control server using b64 encoded json (server is at https://github.com/0xflux/SIMAP/)
 
 # Usage
 
