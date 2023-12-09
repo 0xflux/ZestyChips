@@ -1,9 +1,12 @@
 # ZestyChips
 
-Reverse engineering a .net c# stealer seen in the wild. Please read the full readme, full sections include:
+Reverse engineering a .net c# stealer seen in the wild. You must **read this page in full** before you use or attempt to review this code, full sections include:
 
  - LEGAL DISCLAIMER
  - Usage
+
+This project, including all associated source code and documentation, is developed and shared solely for educational, research, and defensive purposes in the field of cybersecurity. It is intended to be used exclusively by cybersecurity professionals, researchers, and educators to enhance understanding, develop defensive strategies, and improve security postures. **It is the user's responsibility to comply with all relevant local, state, national, and international laws and regulations related to cybersecurity and the use of such tools and information.**
+
 
 ![image](https://github.com/0xflux/ZestyChips/assets/49762827/171fa741-ba4d-4b49-9486-bb30a2046f9c)
 
