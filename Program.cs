@@ -103,7 +103,7 @@ namespace ZestyChips
                 }
                 else
                 {
-                    Helpers.PrintFail("failed to login to IMAP server. Response: " + responseString);
+                    Helpers.PrintFail($"failed to login to IMAP server. Response: {responseString}");
                     return false;
                 }
             }

