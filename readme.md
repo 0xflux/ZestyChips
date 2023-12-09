@@ -1,3 +1,13 @@
+# ZestyChips
+
+Reverse engineering a .net c# stealer seen in the wild. Please read the full readme, full sections include:
+
+ - LEGAL DISCLAIMER
+ - Usage
+
+![image](https://github.com/0xflux/ZestyChips/assets/49762827/171fa741-ba4d-4b49-9486-bb30a2046f9c)
+
+
 # LEGAL DISCLAIMER
 
 THIS IS NOT DESIGNED TO WORK 'AS IS' FOR ETHICAL REASONS TO PREVENT 'SCRIPT KIDDY' USAGE. If you wish to use this script, please get in touch via Twitter: https://twitter.com/0xfluxsec. **This requires an activation code to run**. This is written by a security professional, for security professionals.
