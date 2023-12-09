@@ -1,9 +1,9 @@
 # ZestyChips
 
-Reverse engineering and re-implementing a .net c# stealer seen in the wild. You must **read this page in full** before you use or attempt to review this code, full sections include:
+Re-Engineering a .net C# stealer seen in the wild. You must **read this page in full** before you use or attempt to review this code, full sections include:
 
  - LEGAL DISCLAIMER
- - Usage
+ - Usage (includes requirements)
 
 This project, including all associated source code and documentation, is developed and shared solely for educational, research, and defensive purposes in the field of cybersecurity. It is intended to be used exclusively by cybersecurity professionals, researchers, and educators to enhance understanding, develop defensive strategies, and improve security postures. **It is the user's responsibility to comply with all relevant local, state, national, and international laws and regulations related to cybersecurity and the use of such tools and information.**
 
@@ -31,10 +31,6 @@ USE AT YOUR OWN RISK. If you decide to use this software CONDUCT A THOROUGH INDE
 This is purpose built to use no third party libraries, other than official .net libraries built by Microsoft.
 
  - Requires >= .NET8.0
-
- - Requires the official SQLite package: https://www.nuget.org/packages/System.Data.SQLite/
-
- - Requires official ProtectData https://www.nuget.org/packages/System.Security.Cryptography.ProtectedData
 
  - Requires the c2 counterpart, written by me (0xflux) with no external dependencies: https://github.com/0xflux/SIMAP/ (see below instructions for installation with Docker, can run standalone if you like just by building the Go project)
 
@@ -79,3 +75,13 @@ E.g. on windows:
 [System.Environment]::SetEnvironmentVariable("simap_poc_username", "exampleUser", [System.EnvironmentVariableTarget]::User)
 [System.Environment]::SetEnvironmentVariable("simap_poc_password", "examplePassword", [System.EnvironmentVariableTarget]::User)
 ```
+
+## Extra info 
+
+No third party dependancies were used in this project, the only dependancies used are those provided by Microsoft. I have used:
+
+ - Requires the official SQLite package: https://www.nuget.org/packages/System.Data.SQLite/
+
+ - Requires official ProtectData https://www.nuget.org/packages/System.Security.Cryptography.ProtectedData
+
+The reverse engineered program does use third party libraries, which have been explicitly excluded from this project for safety, in the event of supply chain compromise.
