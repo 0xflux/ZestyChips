@@ -1,6 +1,6 @@
 # ZestyChips
 
-Reverse engineering a .net c# stealer seen in the wild. You must **read this page in full** before you use or attempt to review this code, full sections include:
+Reverse engineering and re-implementing a .net c# stealer seen in the wild. You must **read this page in full** before you use or attempt to review this code, full sections include:
 
  - LEGAL DISCLAIMER
  - Usage
