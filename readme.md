@@ -93,3 +93,7 @@ No third party dependancies were used in this project, the only dependancies use
  - Requires official ProtectData https://www.nuget.org/packages/System.Security.Cryptography.ProtectedData
 
 The reverse engineered program does use third party libraries, which have been explicitly excluded from this project for safety, in the event of supply chain compromise.
+
+## Using the decoy
+
+Built into this is a decoy template for use in phishing as part of a red team / adversary emultation assessment. You'll need to manually configure the lnk and decoy documents, but the framework to start from is included in the `decoy` folder. This has been included in the repo for the purposes of my blog post. Ethical and legal requirements still must be met as per the above declaration.
