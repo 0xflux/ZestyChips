@@ -12,14 +12,15 @@ using System.Web;
 * usage (vscode): dotnet run
 */
 
-namespace ZestyChips
+namespace LIUgioygUIOYFGuyktgvhlJYVuyilhvKLJHV
 {
     internal class Program
     {
         private static TcpClient client = new TcpClient();
         static void Main(string[] args)
         {
-            Helpers.PrintInfo("starting ZestyChips...");
+            Helpers.PrintInfo("starting LIUgioygUIOYFGuyktgvhlJYVuyilhvKLJHV...");
+
 
             string name = AppDomain.CurrentDomain.BaseDirectory + AppDomain.CurrentDomain.FriendlyName;
 

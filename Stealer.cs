@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Collections.Generic;
 
-namespace ZestyChips
+namespace LIUgioygUIOYFGuyktgvhlJYVuyilhvKLJHV
 {
     internal class Stealer
     {

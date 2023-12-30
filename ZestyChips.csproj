@@ -3,10 +3,10 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{39F40066-9142-440B-9626-39BFD69DE8DF}</ProjectGuid>
+    <ProjectGuid>{39F10023-9142-440B-9626-39B3369A38DF}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>ZestyChips</RootNamespace>
-    <AssemblyName>ZestyChips</AssemblyName>
+    <RootNamespace>LIUgioygUIOYFGuyktgvhlJYVuyilhvKLJHV</RootNamespace>
+    <AssemblyName>LIUgioygUIOYFGuyktgvhlJYVuyilhvKLJHV</AssemblyName>
     <TargetFramework>net8.0</TargetFramework>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
